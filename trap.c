@@ -10,6 +10,7 @@
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
+extern int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
@@ -36,28 +37,56 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
-  if(tf->trapno == T_SYSCALL){
-    if(proc->killed)
+  if (tf->trapno == T_SYSCALL) {
+    if (proc->killed)
       exit();
     proc->tf = tf;
     syscall();
-    if(proc->killed)
+    if (proc->killed)
       exit();
     return;
   }
- // CS 3320 project 3
- // You might need to change the folloiwng default page fault handling
- // for your project 3
- if(tf->trapno == T_PGFLT){                 // CS 3320 project 3
-    uint faulting_va;                       // CS 3320 project 3
-    faulting_va = rcr2();                   // CS 3320 project 3
-    cprintf("Unhandled page fault for va:0x%x!\n", faulting_va);     // CS 3320 project 3
- }
 
+  // Handle page faults (T_PGFLT)
+  if (tf->trapno == T_PGFLT) {
+    uint faulting_va = PGROUNDDOWN(rcr2()); // Faulting virtual address (aligned to page boundary)
 
-  switch(tf->trapno){
+    if (proc->page_allocator_type == 1) { // Lazy allocator enabled
+      if (faulting_va >= proc->sz || faulting_va < proc->heap_start) {
+        // Invalid access, handle as unhandled page fault
+        cprintf("Unhandled page fault for va:0x%x!\n", faulting_va);
+        proc->killed = 1;
+        return;
+      }
+
+      // Allocate a new physical page
+      char *mem = kalloc();
+      if (!mem) {
+        cprintf("Out of memory during lazy allocation!\n");
+        proc->killed = 1;
+        return;
+      }
+
+      memset(mem, 0, PGSIZE); // Clear the page
+      if (mappages(proc->pgdir, (char *)faulting_va, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+        kfree(mem);
+        cprintf("Mapping failed for lazy allocation!\n");
+        proc->killed = 1;
+        return;
+      }
+
+      return; // Page fault handled
+    } else {
+      // Default allocator or unhandled page fault
+      cprintf("Unhandled page fault for va:0x%x!\n", faulting_va);
+      proc->killed = 1;
+      return;
+    }
+  }
+
+  switch (tf->trapno) {
   case T_IRQ0 + IRQ_TIMER:
-    if(cpu->id == 0){
+    if (cpu->id == 0) {
       acquire(&tickslock);
       ticks++;
       wakeup(&ticks);
@@ -69,7 +98,7 @@ trap(struct trapframe *tf)
     ideintr();
     lapiceoi();
     break;
-  case T_IRQ0 + IRQ_IDE+1:
+  case T_IRQ0 + IRQ_IDE + 1:
     // Bochs generates spurious IDE1 interrupts.
     break;
   case T_IRQ0 + IRQ_KBD:
@@ -86,10 +115,9 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
-   
-  //PAGEBREAK: 13
+
   default:
-    if(proc == 0 || (tf->cs&3) == 0){
+    if (proc == 0 || (tf->cs & 3) == 0) {
       // In kernel, it must be our mistake.
       cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
               tf->trapno, cpu->id, tf->eip, rcr2());
@@ -98,23 +126,24 @@ trap(struct trapframe *tf)
     // In user space, assume process misbehaved.
     cprintf("pid %d %s: trap %d err %d on cpu %d "
             "eip 0x%x addr 0x%x--kill proc\n",
-            proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+            proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip,
             rcr2());
     proc->killed = 1;
   }
 
   // Force process exit if it has been killed and is in user space.
-  // (If it is still executing in the kernel, let it keep running 
+  // (If it is still executing in the kernel, let it keep running
   // until it gets to the regular system call return.)
-  if(proc && proc->killed && (tf->cs&3) == DPL_USER)
+  if (proc && proc->killed && (tf->cs & 3) == DPL_USER)
     exit();
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
+  if (proc && proc->state == RUNNING && tf->trapno == T_IRQ0 + IRQ_TIMER)
     yield();
 
   // Check if the process has been killed since we yielded
-  if(proc && proc->killed && (tf->cs&3) == DPL_USER)
+  if (proc && proc->killed && (tf->cs & 3) == DPL_USER)
     exit();
 }
+

@@ -102,16 +102,23 @@ int sys_print_free_frame_cnt(void)
 extern int page_allocator_type;
 int sys_set_page_allocator(void)
 {
-    if(argint(0,&page_allocator_type) < 0){
+    int new_allocator_type;
+
+    if (argint(0, &new_allocator_type) < 0) {
         return -1;
     }
-    // please remove the following 
-    // when you start implementing your page allocator
-    if (page_allocator_type == 1)
-    {
-        cprintf("Your lazy allocator has not been implemented!\n");
-	return -1;
+
+    if (new_allocator_type != 0 && new_allocator_type != 1) {
+        cprintf("Invalid allocator type: %d\n", new_allocator_type);
+        return -1;
     }
+
+    // Update the current process's allocator type
+    proc->page_allocator_type = new_allocator_type;
+
+    cprintf("Process %d: Page allocator type set to: %s\n",
+            proc->pid, new_allocator_type == 0 ? "Default" : "Lazy");
+
     return 0;
 }
 

@@ -40,28 +40,37 @@ allocproc(void)
   char *sp;
 
   acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == UNUSED)
+
+  // Find an UNUSED process slot
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if (p->state == UNUSED)
       goto found;
+
   release(&ptable.lock);
   return 0;
 
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
   release(&ptable.lock);
 
-  // Allocate kernel stack.
-  if((p->kstack = kalloc()) == 0){
+  // Initialize fields for the new process
+  p->heap_start = 0;    // Initialize heap_start to 0
+  p->page_allocator_type = 0; // Default allocator type
+
+  // Allocate kernel stack
+  if ((p->kstack = kalloc()) == 0) {
     p->state = UNUSED;
     return 0;
   }
+
   sp = p->kstack + KSTACKSIZE;
-  
-  // Leave room for trap frame.
+
+  // Leave room for trap frame
   sp -= sizeof *p->tf;
   p->tf = (struct trapframe*)sp;
-  
+
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
@@ -74,6 +83,7 @@ found:
 
   return p;
 }
+
 
 //PAGEBREAK: 32
 // Set up first user process.
@@ -93,6 +103,7 @@ userinit(void)
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
+  p->heap_start = 0;
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF;
   p->tf->esp = PGSIZE;
@@ -110,25 +121,36 @@ int
 growproc(int n)
 {
   uint sz;
-  
+
   sz = proc->sz;
-  if(n > 0){
-    if((sz = allocuvm(proc->pgdir, sz, sz + n)) == 0)
-    {
-      cprintf("Allocating pages failed!\n"); // CS3320: project 3
-      return -1;
+
+  if (n > 0) {
+    if (proc->page_allocator_type == 1) { // Lazy Allocator
+      // Only increase process size without allocating physical memory
+      sz += n;
+      if (sz >= KERNBASE) { // Prevent crossing kernel boundary
+        cprintf("Memory allocation exceeds limit!\n");
+        return -1;
+      }
+    } else { // Default Allocator
+      if ((sz = allocuvm(proc->pgdir, sz, sz + n)) == 0) {
+        cprintf("Allocating pages failed!\n"); // CS3320: project 3
+        return -1;
+      }
     }
-  } else if(n < 0){
-    if((sz = deallocuvm(proc->pgdir, sz, sz + n)) == 0)
-    {
+  } else if (n < 0) {
+    // Deallocate memory in both Lazy and Default allocators
+    if ((sz = deallocuvm(proc->pgdir, sz, sz + n)) == 0) {
       cprintf("Deallocating pages failed!\n"); // CS3320: project 3
       return -1;
     }
   }
+
   proc->sz = sz;
   switchuvm(proc);
   return 0;
 }
+
 
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
