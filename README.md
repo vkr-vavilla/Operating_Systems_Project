@@ -1,9 +1,8 @@
 # 🧠 xv6-Based Operating System Extensions
 
 > ⚙️ Developed as part of the Operating Systems course at UTA (CS 3320)  
-> 🔐 Designed with Embedded Systems & Cybersecurity principles in mind
+> 🔐 Designed with Embedded Systems in mind
 
-![xv6 Logo](https://pdos.csail.mit.edu/6.828/2014/logo-xv6.png)
 
 ---
 
