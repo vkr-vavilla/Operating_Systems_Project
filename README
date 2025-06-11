@@ -1,50 +1,136 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/s4zP1CmC)
-xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
-Version 6 (v6).  xv6 loosely follows the structure and style of v6,
-but is implemented for a modern x86-based multiprocessor using ANSI C.
+# 🧠 xv6-Based Operating System Extensions
 
-ACKNOWLEDGMENTS
+> ⚙️ Developed as part of the Operating Systems course at UTA (CS 3320)  
+> 🔐 Designed with Embedded Systems & Cybersecurity principles in mind
 
-xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
-to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
-2000)). See also http://pdos.csail.mit.edu/6.828/2014/xv6.html, which
-provides pointers to on-line resources for v6.
+![xv6 Logo](https://pdos.csail.mit.edu/6.828/2014/logo-xv6.png)
 
-xv6 borrows code from the following sources:
-    JOS (asm.h, elf.h, mmu.h, bootasm.S, ide.c, console.c, and others)
-    Plan 9 (entryother.S, mp.h, mp.c, lapic.c)
-    FreeBSD (ioapic.c)
-    NetBSD (console.c)
+---
 
-The following people have made contributions:
-    Russ Cox (context switching, locking)
-    Cliff Frey (MP)
-    Xiao Yu (MP)
-    Nickolai Zeldovich
-    Austin Clements
+## 📌 Overview
 
-In addition, we are grateful for the bug reports and patches contributed by
-Silas Boyd-Wickizer, Peter Froehlich, Shivam Handa, Anders Kaseorg, Eddie
-Kohler, Yandong Mao, Hitoshi Mitake, Carmi Merimovich, Joel Nider, Greg Price,
-Eldar Sehayek, Yongming Shen, Stephen Tu, and Zouchangwei.
+This project is a complete extension of the [xv6](https://pdos.csail.mit.edu/6.828/2018/xv6.html) teaching operating system, restructured and enhanced to simulate real-world OS behaviors. Through intensive low-level C and x86 assembly work, I added new kernel features, improved system performance, and enforced memory and process security boundaries. The project is a direct reflection of my interest and growing experience in **Embedded Systems**, **Operating Systems Internals**, and **Secure System Design**.
 
-The code in the files that constitute xv6 is
-Copyright 2006-2014 Frans Kaashoek, Robert Morris, and Russ Cox.
+---
 
-ERROR REPORTS
+## 🧩 Key Features
 
-If you spot errors or have suggestions for improvement, please send
-email to Frans Kaashoek and Robert Morris (kaashoek,rtm@csail.mit.edu). 
+### 🔧 System Call Design & Security
+- Implemented secure custom system calls: `shmget`, `shmdel`, and others.
+- Added syscall validation and filtering mechanisms to prevent misuse.
+- Wrote low-level assembly stubs for syscall entry points (`usys.S`).
 
-BUILDING AND RUNNING XV6
+### 🧠 Shared Memory & Page Management
+- Created shared memory APIs for inter-process communication (IPC).
+- Integrated reference counting into the kernel’s page allocator.
+- Enhanced physical memory tracking to prevent leaks and access violations.
 
-To build xv6 on an x86 ELF machine (like Linux or FreeBSD), run "make".
-On non-x86 or non-ELF machines (like OS X, even on x86), you will
-need to install a cross-compiler gcc suite capable of producing x86 ELF
-binaries.  See http://pdos.csail.mit.edu/6.828/2014/tools.html.
-Then run "make TOOLPREFIX=i386-jos-elf-".
+### 📦 Buffer Cache Synchronization
+- Built a spinlock-based buffer cache system in `bio.c`.
+- Applied `sleep()`/`wakeup()` for I/O blocking and safe disk access.
+- Reduced I/O overhead by caching frequently accessed disk blocks.
 
-To run xv6, install the QEMU PC simulators.  To run in QEMU, run "make qemu".
+### ⚙️ Process Control Mechanisms
+- Extended process lifecycle: `fork`, `exec`, `wait`, `kill`, and zombie cleanup.
+- Added debugging tools to trace process creation and destruction in real time.
 
-To create a typeset version of the code, run "make xv6.pdf".  This
-requires the "mpage" utility.  See http://www.mesa.nl/pub/mpage/.
+### 🧪 Custom Shell & Userland Utilities
+- Developed a custom user shell (`_sh`) and tools like `_ls`, `_cat`, `_echo`.
+- Linked all user programs with system call wrappers and compiled with xv6’s user-level toolchain.
+
+---
+
+## 💡 Skills & Technologies Gained
+
+| Domain              | Skills/Technologies                                                                 |
+|---------------------|-------------------------------------------------------------------------------------|
+| **Languages**        | C, x86 Assembly                                                                    |
+| **OS Concepts**      | System Calls, Memory Management, Process Scheduling, Filesystems                   |
+| **Embedded Systems** | QEMU Simulation, Virtual Boot Environments, Direct Memory Access                   |
+| **Cybersecurity**    | Privilege Separation, Syscall Sanitization, Race Condition Avoidance               |
+| **Tools**            | QEMU, Bochs, GDB, Make, GCC Toolchain, Git                                          |
+| **Debugging**        | Printk Tracing, Stack Walks, Breakpoint Debugging in Assembly and C                |
+
+---
+
+## 📂 Directory Structure
+
+```bash
+📁 xv6-operating-systems-project/
+├── bio.c            # Buffer cache logic with spinlocks
+├── syscall.c/h      # System call implementations and definitions
+├── user.h           # User-visible syscall declarations
+├── usys.S           # Assembly syscall stubs
+├── _sh, _ls, _cat   # Custom user programs (shell, utilities)
+├── Makefile         # Build script for OS and userland
+└── README.md        # Project documentation (this file)
+```
+
+---
+
+## 🛠️ How to Build & Run
+
+> Requires QEMU and an x86 GCC cross-compiler
+
+```bash
+# Clone this repository
+git clone https://github.com/yourusername/xv6-operating-systems-project.git
+cd xv6-operating-systems-project
+
+# Build the kernel and user programs
+make
+
+# Run in QEMU virtual machine
+make qemu
+
+# Optionally, run in Bochs
+make bochs
+```
+
+---
+
+## 📚 What I Learned
+
+- 🧠 Deep understanding of user/kernel separation and syscall handling
+- 💻 Secure, low-level memory and buffer management
+- 🔒 Defense-in-depth coding practices and attack surface reduction
+- 🧪 Debugging kernel panics, stack overflows, and illegal memory access
+- ⚙️ Realistic OS simulation with process and I/O scheduling in xv6
+
+---
+
+## 💼 Why This Matters
+
+This project is an academic but practical replication of tasks performed in embedded and systems-level roles. It gave me real hands-on experience working near the hardware, optimizing low-level performance, and securing critical kernel resources.
+
+**Highlights for Employers:**
+- Experience writing memory-safe C and system-level Assembly code
+- Proven ability to debug and extend a Unix-style kernel
+- Comfort working with QEMU, virtual machines, and cross-compilation
+- Cybersecurity-aware development practices at the OS level
+
+---
+
+## 👨‍💻 About Me
+
+**Vamshi Vavilla**  
+🎓 Computer Engineering | Minors: Cybersecurity, Mathematics, and Physics  
+🔗 [LinkedIn](https://www.linkedin.com/in/yourprofile)  
+📧 vamshivavilla@email.com  
+
+---
+
+## 🤝 Let’s Connect
+
+I am currently seeking **internship** or **full-time opportunities** in:
+
+- 🛠️ Embedded Systems Development  
+- 🧠 Operating Systems Engineering  
+- 🔐 Security Research and Kernel Development  
+
+If you're looking for a developer who loves working close to the hardware, solving real systems problems, and writing secure low-level code—I'd love to chat.
+
+---
+
+> “Working with xv6 taught me that understanding the kernel means understanding the machine.”  
+> — Vamshi Vavilla
