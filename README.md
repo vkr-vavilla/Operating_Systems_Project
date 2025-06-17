@@ -115,7 +115,7 @@ This project is an academic but practical replication of tasks performed in embe
 **Vamshi Vavilla**  
 🎓 Computer Engineering | Minors: Cybersecurity, Mathematics, and Physics  
 🔗 [LinkedIn](https://www.linkedin.com/in/yourprofile)  
-📧 vamshivavilla@email.com  
+📧 vkr.vavilla@gmail.com  
 
 ---
 
